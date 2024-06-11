@@ -96,10 +96,9 @@ class Configuration:
     def _get_script_env(cls, scripts: List) -> Dict[str, Any]:
         default_env = cls._get_shell_env([])
         and_script_env = cls._get_shell_env(scripts)
-        vars_just_in_script = set(and_script_env) - set(default_env)
-        union_env = dict(default_env)
-        union_env.update(and_script_env)
-        return dict([(v, union_env[v]) for v in vars_just_in_script])
+        for key in and_script_env.keys():
+            default_env[key] = and_script_env[key]
+        return default_env
 
     @staticmethod
     def _get_shell_env(scripts: List) -> Dict[str, Any]:
