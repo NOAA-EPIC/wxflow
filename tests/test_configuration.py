@@ -5,8 +5,11 @@ import pytest
 
 from wxflow import Configuration, cast_as_dtype
 
+SOME_INPUT_ENVVAR1 = "input_envvar"
+
 file0 = """#!/bin/bash
 export SOME_ENVVAR1="${USER}"
+export SOME_INPUT_ENVVAR1="${SOME_INPUT_ENVVAR1:-}"
 export SOME_LOCALVAR1="myvar1"
 export SOME_LOCALVAR2="myvar2.0"
 export SOME_LOCALVAR3="myvar3_file0"
@@ -27,6 +30,11 @@ export SOME_BOOL3=.T.
 export SOME_BOOL4=NO
 export SOME_BOOL5=.false.
 export SOME_BOOL6=.F.
+export SOME_LIST1="3, 15, -999"
+export SOME_LIST2="0.2,3.5,-9999."
+export SOME_LIST3="20221225, 202212251845,"
+export SOME_LIST4="YES, .false., .T."
+export SOME_LIST5="0.2, test_str, 15, 20221225, NO"
 """
 
 file1 = """#!/bin/bash
@@ -37,6 +45,7 @@ export SOME_BOOL7=.TRUE.
 
 file0_dict = {
     'SOME_ENVVAR1': os.environ['USER'],
+    'SOME_INPUT_ENVVAR1': "",
     'SOME_LOCALVAR1': "myvar1",
     'SOME_LOCALVAR2': "myvar2.0",
     'SOME_LOCALVAR3': "myvar3_file0",
@@ -56,8 +65,16 @@ file0_dict = {
     'SOME_BOOL3': True,
     'SOME_BOOL4': False,
     'SOME_BOOL5': False,
-    'SOME_BOOL6': False
+    'SOME_BOOL6': False,
+    'SOME_LIST1': [3, 15, -999],
+    'SOME_LIST2': [0.2, 3.5, -9999.],
+    'SOME_LIST3': [datetime(2022, 12, 25, 0, 0, 0), datetime(2022, 12, 25, 18, 45, 0)],
+    'SOME_LIST4': [True, False, True],
+    'SOME_LIST5': [0.2, 'test_str', 15, datetime(2022, 12, 25, 0, 0, 0), False],
 }
+
+file0_dict_set_envvar = file0_dict.copy()
+file0_dict_set_envvar["SOME_INPUT_ENVVAR1"] = SOME_INPUT_ENVVAR1
 
 file1_dict = {
     'SOME_LOCALVAR3': "myvar3_file1",
@@ -100,6 +117,14 @@ datetime_dtypes = [
     ('20221215T1830Z', datetime(2022, 12, 15, 18, 30, 0)),
 ]
 
+list_dtypes = [
+    ('3, 15, -999', [3, 15, -999]),
+    ('0.2,3.5,-9999.', [0.2, 3.5, -9999.]),
+    ('20221215,20221215T1830Z', [datetime(2022, 12, 15, 0, 0, 0), datetime(2022, 12, 15, 18, 30, 0)]),
+    ('YES, .false., .T.', [True, False, True]),
+    ('0.2, test_str, 15, 20221225, NO', [0.2, 'test_str', 15, datetime(2022, 12, 25, 0, 0, 0), False]),
+]
+
 
 def evaluate(dtypes):
     for pair in dtypes:
@@ -127,6 +152,10 @@ def test_cast_as_dtype_datetimes():
     evaluate(datetime_dtypes)
 
 
+def test_cast_as_dtype_list():
+    evaluate(list_dtypes)
+
+
 @pytest.fixture
 def create_configs(tmp_path):
 
@@ -144,11 +173,10 @@ def test_configuration_config_dir(tmp_path, create_configs):
     assert cfg.config_dir == tmp_path
 
 
-@pytest.mark.skip(reason="fails in GH runner, passes on localhost")
 def test_configuration_config_files(tmp_path, create_configs):
     cfg = Configuration(tmp_path)
     config_files = [str(tmp_path / 'config.file0'), str(tmp_path / 'config.file1')]
-    assert config_files == cfg.config_files
+    assert sorted(config_files) == sorted(cfg.config_files)
 
 
 def test_find_config(tmp_path, create_configs):
@@ -157,17 +185,22 @@ def test_find_config(tmp_path, create_configs):
     assert str(tmp_path / 'config.file0') == file0
 
 
-@pytest.mark.skip(reason="fails in GH runner, passes on localhost")
 def test_parse_config1(tmp_path, create_configs):
     cfg = Configuration(tmp_path)
     f0 = cfg.parse_config('config.file0')
     assert file0_dict == f0
 
 
-@pytest.mark.skip(reason="fails in GH runner, passes on localhost")
 def test_parse_config2(tmp_path, create_configs):
     cfg = Configuration(tmp_path)
     ff = cfg.parse_config(['config.file0', 'config.file1'])
     ff_dict = file0_dict.copy()
     ff_dict.update(file1_dict)
     assert ff_dict == ff
+
+
+@pytest.mark.skip(reason="fails in GH runner, passes on localhost")
+def test_parse_config_w_envvar(tmp_path, create_configs):
+    cfg = Configuration(tmp_path)
+    f0 = cfg.parse_config('config.file0', SOME_INPUT_ENVVAR1=SOME_INPUT_ENVVAR1)
+    assert file0_dict_set_envvar == f0

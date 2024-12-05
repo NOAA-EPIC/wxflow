@@ -1,0 +1,11 @@
+{
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "python.testing.autoTestDiscoverOnSaveEnabled": true,
+    "python.testing.promptToConfigure": true,
+    "python.testing.pytestArgs": ["-v", "--color=yes", "--no-cov"],
+    "python.testing.cwd": "./tests",
+    "pre-commit-helper.config": "${workspaceFolder}/.pre-commit-config.yaml",
+    "pre-commit-helper.runOnSave": "all hooks",
+    "pre-commit-helper.runOnSaveRegex": "^(.*)\\.(py|c|h)$"
+}
